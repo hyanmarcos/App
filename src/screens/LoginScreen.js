@@ -6,11 +6,29 @@ import {
   TouchableOpacity,
   StyleSheet,
   Alert,
+  Button,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { registerUser, loginUser } from '../auth';
 
 export default function LoginScreen({ navigation }) {
   const [username, setUsername] = useState('');
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [isLogin, setIsLogin] = useState(true);
+
+  const handleRegister = async () => {
+    console.log('Tentando registrar:', { name, email, password }); // Log para depuração
+    try {
+      const data = await registerUser(name, email, password);
+      Alert.alert('Sucesso', data.message);
+      setIsLogin(true); // Muda para a tela de login após registro
+    } catch (error) {
+      console.error('Erro no registro:', error); // Log para depuração
+      Alert.alert('Erro', error.message);
+    }
+  };
 
   const handleLogin = async () => {
     if (username.trim()) {
@@ -21,22 +39,57 @@ export default function LoginScreen({ navigation }) {
         Alert.alert('Erro', 'Não foi possível fazer login');
       }
     } else {
-      Alert.alert('Erro', 'Por favor, digite seu nome');
+      try {
+        const data = await loginUser(email, password);
+        await AsyncStorage.setItem('token', data.token); // Armazenar token
+        Alert.alert('Sucesso', data.message);
+      } catch (error) {
+        Alert.alert('Erro', error.message);
+      }
     }
   };
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Carnaval Score</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Seu nome"
-        value={username}
-        onChangeText={setUsername}
-      />
-      <TouchableOpacity style={styles.button} onPress={handleLogin}>
-        <Text style={styles.buttonText}>Entrar</Text>
-      </TouchableOpacity>
+      {isLogin ? (
+        <View>
+          <Text style={styles.title}>Carnaval Score</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Seu nome"
+            value={username}
+            onChangeText={setUsername}
+          />
+          <TouchableOpacity style={styles.button} onPress={handleLogin}>
+            <Text style={styles.buttonText}>Entrar</Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <View>
+          <Text style={styles.title}>{isLogin ? 'Login' : 'Registrar'}</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Nome"
+            value={name}
+            onChangeText={setName}
+          />
+          <TextInput
+            style={styles.input}
+            placeholder="Email"
+            value={email}
+            onChangeText={setEmail}
+          />
+          <TextInput
+            style={styles.input}
+            placeholder="Senha"
+            secureTextEntry
+            value={password}
+            onChangeText={setPassword}
+          />
+          <Button title={isLogin ? 'Login' : 'Registrar'} onPress={isLogin ? handleLogin : handleRegister} />
+        </View>
+      )}
+      <Button title={isLogin ? 'Criar conta' : 'Já tenho uma conta'} onPress={() => setIsLogin(!isLogin)} />
     </View>
   );
 }
